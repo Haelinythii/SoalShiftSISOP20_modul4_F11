@@ -400,7 +400,7 @@ static int xmp_rename(const char *from, const char *to){
         createLogInfo2("DECRYPT2", from, to);
     }
 
-    ifstrstr(from, "encv2_") == NULL && (strstr(to, "encv2_") != NULL){
+    if(strstr(from, "encv2_") == NULL && (strstr(to, "encv2_") != NULL){
         initEncrypt2(fpathTo);
         createLogInfo2("ENCRYPT2", from, to);
     }
