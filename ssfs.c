@@ -189,7 +189,7 @@ static int xmp_unlink(const char *path){
 
     int res;
 
-    res = unlink(path);
+    res = unlink(fpath);
     if (res == -1)
         return -errno;
 
@@ -208,7 +208,7 @@ static int xmp_rmdir(const char *path){
 
     int res;
 
-    res = rmdir(path);
+    res = rmdir(fpath);
     if (res == -1)
         return -errno;
 
@@ -345,7 +345,7 @@ static int xmp_truncate(const char *path, off_t size){
     }
 
     int res;
-    res = truncate(path, size);
+    res = truncate(fpath, size);
     if (res == -1)
         return -errno;
     
