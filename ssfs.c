@@ -1,4 +1,5 @@
 #define FUSE_USE_VERSION 28
+#define _GNU_SOURCE
 #include <fuse.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,13 +15,15 @@
 #include <sys/xattr.h>
 #include <sys/wait.h>
 #include <pthread.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-char* dirpath = "/home/noradier/Documents";
+char* dirpath = "/home/dwiki/Documents";
 
 // Membuat log dengan pesan Warning
 void createLogWarning(const char *log, const char *path){
     FILE *fp;
-    fp = fopen("/home/noradier/fs.log", "a");
+    fp = fopen("/home/dwiki/fs.log", "a");
     fputs("WARNING::", fp);
     char timestamp[1000];
     time_t t = time(NULL);
@@ -37,7 +40,7 @@ void createLogWarning(const char *log, const char *path){
 // Membuat log dengan pesan Info
 void createLogInfo1(const char *log, const char *path){
     FILE *fp;
-    fp = fopen("/home/noradier/fs.log", "a");
+    fp = fopen("/home/dwiki/fs.log", "a");
     fputs("INFO::", fp);
     char timestamp[1000];
     time_t t = time(NULL);
@@ -54,7 +57,7 @@ void createLogInfo1(const char *log, const char *path){
 // Membuat log dengan pesan Info tapi menerima dua path, source dan destination
 void createLogInfo2(const char *log, const char *source, const char *destination){
     FILE *fp;
-    fp = fopen("/home/noradier/fs.log", "a");
+    fp = fopen("/home/dwiki/fs.log", "a");
     fputs("INFO::", fp);
     char timestamp[1000];
     time_t t = time(NULL);
@@ -68,6 +71,96 @@ void createLogInfo2(const char *log, const char *source, const char *destination
     fputs(destination, fp);
     fputs("\n", fp);
     fclose(fp);
+}
+
+int isRegFile(const char *path)
+{
+    struct stat path_stat;
+    stat(path, &path_stat);
+    return S_ISREG(path_stat.st_mode);
+}
+
+void caesar_chiper_encrypt (char text[1000], char newChar[1000])
+{
+    // char pathTitik[1000], pathTitik2[1000];
+    // sprintf(pathTitik, "%s/.", dirpath);
+    // sprintf(pathTitik2, "%s/..", dirpath);
+    // // printf("%s\n", text);
+    // if(strcmp(text, pathTitik) == 0 || strcmp(text, pathTitik2) == 0) return;
+
+    // 9(ku@AW1[Lmvgax6q`5Y2Ry?+s F!^HKQiBXCUSe&0M.b%rI'7d)o 4~VfZ*{#:}ETt$3J-zpc]lnh8,GwP_ND|jO
+	char key[100] = "9(ku@AW1[Lmvgax6q`5Y2Ry?+sF!^HKQiBXCUSe&0M.b%rI'7d)o4~VfZ*{#:}ETt$3J-zpc]lnh8,GwP_ND|jO";
+    
+    char sentence[1000] = "";
+    strcpy(sentence, text);
+
+    // char *hasil;
+    // hasil = malloc(sizeof(char) * strlen(sentence));
+
+    int in;
+    for (in = 0 ; strlen(sentence) > in ; in++)
+	{
+		if(sentence[in] == '/')
+		{
+			// printf("/");
+            newChar[in] = '/';
+			continue;
+		}
+		char dif[2];
+		dif[0] = sentence[in];
+		// printf("%c", key[(strcspn(key,dif) + 10) % 87]);
+        newChar[in] = key[(strcspn(key,dif) + 10) % 87];
+//		for (i = 0 ; strlen(key) > i; i++)
+//		{
+//			if(key[i] == sentence[in])
+//			{
+//				printf("%c", key[(i+10) % 87]);
+//				break;
+//			}
+//		}
+	}
+
+}
+
+void caesar_chiper_decrypt (char text[1000], char newChar[1000])
+{
+    // char pathTitik[1000], pathTitik2[1000];
+    // sprintf(pathTitik, "%s/.", dirpath);
+    // sprintf(pathTitik2, "%s/..", dirpath);
+    // printf("%s\n", text);
+    // if(strcmp(text, pathTitik) == 0 || strcmp(text, pathTitik2) == 0) return;
+
+    // 9(ku@AW1[Lmvgax6q`5Y2Ry?+s F!^HKQiBXCUSe&0M.b%rI'7d)o 4~VfZ*{#:}ETt$3J-zpc]lnh8,GwP_ND|jO
+	char key[100] = "9(ku@AW1[Lmvgax6q`5Y2Ry?+sF!^HKQiBXCUSe&0M.b%rI'7d)o4~VfZ*{#:}ETt$3J-zpc]lnh8,GwP_ND|jO";
+    
+    
+    char sentence[1000] = "";
+    strcpy(sentence, text);
+
+    for (int in = 0 ; strlen(sentence) > in ; in++)
+	{
+		if(sentence[in] == '/')
+		{
+			// printf("/");
+            newChar[in] = '/';
+			continue;
+		}
+		
+//		hasil[in] = key[(strcspn(key,dif) + 10) % 87];
+//		printf("%c", hasil[in]);
+		for (int i = 0 ; strlen(key) > i; i++)
+		{
+			if(key[i] == sentence[in])
+			{
+				int indTemp = i;
+				if(indTemp < 10) indTemp += 87;
+				// printf("%c", key[indTemp-10]);
+                newChar[in] = key[indTemp-10];
+				break;
+			}
+		}
+	}
+    // printf("%s", newChar);
 }
 
 void encrypt2(char *filePath){
@@ -200,7 +293,68 @@ void initDecrypt2(char *wPath){
 static int xmp_getattr(const char *path, struct stat *stbuf){
     int res;
     char fpath[1000];
-    sprintf(fpath,"%s%s",dirpath,path);
+    char enc[1000] = "";
+
+    bool encryptNeeded = false;
+    char pathNow[1000] = "", pathEnc[1000] = "";
+
+    char* token = strtok(path, "/");
+    while(token != NULL)
+    {
+        if(encryptNeeded)
+        {
+            strcat(pathEnc, "/");
+            strcat(pathEnc, token);
+        }
+        else if (!encryptNeeded)
+        {
+            strcat(pathNow, "/");
+            strcat(pathNow, token);
+        }
+        if(strncmp(token, "encv1_", 6) == 0) //perlu encrypt
+        {
+            encryptNeeded = true;
+        }
+        // printf("%s / ", token);
+        token = strtok(NULL, "/");
+    }
+    // printf("\n");
+
+    if(encryptNeeded)
+    {
+        char  checkFile[1000] = "", checkEnc[1000]= "";
+        
+        char* titik = strrchr(pathEnc, '.');
+        if(titik != NULL)
+        {
+            strncpy(checkFile, pathEnc, titik-pathEnc);
+            caesar_chiper_decrypt(checkFile, checkEnc);
+        }
+        
+        
+        char checkDoc[1000] = "";
+        strcat(checkDoc, dirpath);
+        strcat(checkDoc, pathNow);
+        strcat(checkDoc, checkEnc);
+        if(titik != NULL) strcat(checkDoc, titik);
+
+        if(isRegFile(checkDoc))
+        {
+            sprintf(fpath, "%s%s%s%s",dirpath, pathNow, checkEnc, titik);
+        }
+        else
+        {
+            caesar_chiper_decrypt(pathEnc, enc);
+            sprintf(fpath, "%s%s%s",dirpath, pathNow, enc);
+        }
+    }
+    else
+    {
+        caesar_chiper_decrypt(pathEnc, enc);
+	    sprintf(fpath,"%s%s%s",dirpath, pathNow,enc);
+    }
+
+    // sprintf(fpath,"%s%s",dirpath,path);
     res = lstat(fpath, stbuf);
     if (res == -1)
         return -errno;
@@ -230,11 +384,72 @@ static int xmp_readlink(const char *path, char *buf, size_t size){
 
 static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi){
     char fpath[1000];
+    bool encryptNeeded = false;
+
+    char pathNow[1000] = "", pathEnc[1000] = "";
+
+    char* token = strtok(path, "/");
+    while(token != NULL)
+    {
+        if(encryptNeeded)
+        {
+            strcat(pathEnc, "/");
+            strcat(pathEnc, token);
+        }
+        else if (!encryptNeeded)
+        {
+            strcat(pathNow, "/");
+            strcat(pathNow, token);
+        }
+        if(strncmp(token, "encv1_", 6) == 0) //perlu encrypt
+        {
+            encryptNeeded = true;
+        }
+        // printf("%s / ", token);
+        token = strtok(NULL, "/");
+    }
+    // printf("\n");
+
     if(strcmp(path,"/") == 0){
         path=dirpath;
         sprintf(fpath,"%s",path);
     } else{
-        sprintf(fpath, "%s%s",dirpath,path);
+        if(encryptNeeded)
+        {
+            char enc[1000] = "", checkFile[1000] = "", checkEnc[1000]= "";
+        
+            char* titik = strrchr(pathEnc, '.');
+
+            if(titik !=NULL)
+            {
+                strncpy(checkFile, pathEnc, titik-pathEnc);
+                caesar_chiper_decrypt(checkFile, checkEnc);
+            }
+
+        
+            char checkDoc[1000] = "";
+            strcat(checkDoc, dirpath);
+            strcat(checkDoc, pathNow);
+            strcat(checkDoc, checkEnc);
+            if(titik != NULL) strcat(checkDoc, titik);
+
+            if(isRegFile(checkDoc))
+            {
+                sprintf(fpath, "%s%s%s%s",dirpath, pathNow, checkEnc, titik);
+
+            }
+            else
+            {
+                caesar_chiper_decrypt(pathEnc, enc);
+                sprintf(fpath, "%s%s%s",dirpath, pathNow, enc);
+            }
+        }
+        else
+        {
+            char enc[1000] = "";
+            caesar_chiper_decrypt(pathEnc, enc);
+            sprintf(fpath, "%s%s%s",dirpath, pathNow, enc);
+        }
     }
 
     int res = 0;
@@ -247,11 +462,46 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
     if (dp == NULL)
         return -errno;
     while ((de = readdir(dp)) != NULL) {
+        if(strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0) continue;
         struct stat st;
         memset(&st, 0, sizeof(st));
         st.st_ino = de->d_ino;
         st.st_mode = de->d_type << 12;
-        res = (filler(buf, de->d_name, &st, 0));
+
+        if(encryptNeeded)
+        {
+            if(de->d_type == DT_DIR) //direktori
+            {
+                char enc[1000] = "";
+                caesar_chiper_encrypt(de->d_name, enc);
+		        res = (filler(buf, enc, &st, 0));
+            }
+            else if(de->d_type == DT_REG) //file reguler
+            {
+                char enc[1000] = "", fileLengkap[1000]="", fileName[1000] = "";
+
+                strcpy(fileLengkap, de->d_name);
+                char* titik = strrchr(fileLengkap, '.');
+
+                if(titik != NULL) 
+                    strncpy(fileName, fileLengkap, titik-fileLengkap);
+                else
+                    strcpy(fileName, fileLengkap);
+                
+
+                caesar_chiper_encrypt(fileName, enc);
+
+                if(titik != NULL) strcat(enc, titik);
+
+
+		        res = (filler(buf, enc, &st, 0));
+            }
+        }
+        else
+        {
+            res = (filler(buf, de->d_name, &st, 0));
+        }
+
         if(res!=0) break;
     }
     closedir(dp);
@@ -294,6 +544,22 @@ static int xmp_mkdir(const char *path, mode_t mode){
         sprintf(fpath,"%s",path);
     } else{
         sprintf(fpath, "%s%s",dirpath,path);
+    }
+
+    char* token = strtok(path, "/");
+    while(token != NULL)
+    {
+        if(strncmp(token, "encv1_", 6) == 0)
+        {
+            createLogInfo1("ENCRYPT1", path);
+            break;
+        }
+        else if(strncmp(token, "encv2_", 6) == 0)
+        {
+            createLogInfo1("ENCRYPT2", path);
+            break;
+        }
+        token = strtok(NULL, "/");
     }
     
     int res;
@@ -395,15 +661,71 @@ static int xmp_rename(const char *from, const char *to){
 
     createLogInfo2("RENAME", from, to);
 
-    if(strstr(from, "encv2_") != NULL && strstr(to, "encv2_") == NULL){
-        initDecrypt2(fpathTo);
-        createLogInfo2("DECRYPT2", from, to);
+    bool en1 = false, en2 = false, en3 = false, en4 = false;
+    char* token = strtok(from, "/");
+    while(token != NULL)
+    {
+        if(strncmp(token, "encv1_", 6) == 0)
+        {
+            // createLogInfo1("ENCRYPT1", path);
+            en1 = true;
+            break;
+        }
+        else if(strncmp(token, "encv2_", 6) == 0)
+        {
+            // createLogInfo1("ENCRYPT2", path);
+            en2 = true;
+            break;
+        }
+        token = strtok(NULL, "/");
     }
 
-    ifstrstr(from, "encv2_") == NULL && (strstr(to, "encv2_") != NULL){
-        initEncrypt2(fpathTo);
-        createLogInfo2("ENCRYPT2", from, to);
+    //false ke true encrypt, true ke false decrypt
+    char* token1 = strtok(to, "/");
+    while(token1 != NULL)
+    {
+        if(strncmp(token1, "encv1_", 6) == 0)
+        {
+            
+            en3 = true;
+            break;
+        }
+        else if(strncmp(token1, "encv2_", 6) == 0)
+        {
+            en4 = true;
+            break;
+        }
+        token1 = strtok(NULL, "/");
     }
+
+    if(!en1 && en3)
+    {
+        createLogInfo2("ENCRYPT1", from, to);
+    }
+    else if(en1 && !en3)
+    {
+        createLogInfo2("DECRYPT1", from, to);
+    }
+    else if(!en2 && en4)
+    {
+        createLogInfo2("ENCRYPT2", from, to);
+        initEncrypt2(fpathTo);
+    }
+    else if(en2 && !en4)
+    {
+        createLogInfo2("DECRYPT2", from, to);
+        initDecrypt2(fpathTo);
+    }
+
+    // if(strstr(from, "encv2_") != NULL && strstr(to, "encv2_") == NULL){
+    //     initDecrypt2(fpathTo);
+    //     createLogInfo2("DECRYPT2", from, to);
+    // }
+
+    // if(strstr(from, "encv2_") == NULL && (strstr(to, "encv2_") != NULL)){
+    //     initEncrypt2(fpathTo);
+    //     createLogInfo2("ENCRYPT2", from, to);
+    // }
     return 0;
 }
 
@@ -538,11 +860,71 @@ static int xmp_open(const char *path, struct fuse_file_info *fi){
 
 static int xmp_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi){
     char fpath[1000];
+
+    bool encryptNeeded = false;
+    char pathNow[1000] = "", pathEnc[1000] = "";
+
+    char* token = strtok(path, "/");
+    while(token != NULL)
+    {
+        if(encryptNeeded)
+        {
+            strcat(pathEnc, "/");
+            strcat(pathEnc, token);
+        }
+        else if (!encryptNeeded)
+        {
+            strcat(pathNow, "/");
+            strcat(pathNow, token);
+        }
+        if(strncmp(token, "encv1_", 6) == 0) //perlu encrypt
+        {
+            encryptNeeded = true;
+        }
+        // printf("%s / ", token);
+        token = strtok(NULL, "/");
+    }
+    // printf("\n");
+
     if(strcmp(path,"/") == 0){
         path=dirpath;
         sprintf(fpath,"%s",path);
     } else{
-        sprintf(fpath, "%s%s",dirpath,path);
+        if(encryptNeeded)
+        {
+            char enc[1000] = "", checkFile[1000] = "", checkEnc[1000]= "";
+        
+            char* titik = strrchr(pathEnc, '.');
+
+            if(titik != NULL)
+            {
+                strncpy(checkFile, pathEnc, titik-pathEnc);
+                caesar_chiper_decrypt(checkFile, checkEnc);
+            }
+
+        
+            char checkDoc[1000] = "";
+            strcat(checkDoc, dirpath);
+            strcat(checkDoc, pathNow);
+            strcat(checkDoc, checkEnc);
+            if(titik != NULL) strcat(checkDoc, titik);
+
+            if(isRegFile(checkDoc))
+            {
+                sprintf(fpath, "%s%s%s%s",dirpath, pathNow, checkEnc, titik);
+            }
+            else
+            {
+                caesar_chiper_decrypt(pathEnc, enc);
+                sprintf(fpath, "%s%s%s",dirpath, pathNow, enc);
+            }
+        }
+        else
+        {
+            char enc[1000] = "";
+            caesar_chiper_decrypt(pathEnc, enc);
+            sprintf(fpath, "%s%s%s",dirpath, pathNow, enc);
+        }
     }
 
     int res = 0;
