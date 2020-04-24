@@ -17,6 +17,7 @@
 
 char* dirpath = "/home/noradier/Documents";
 
+// Membuat log dengan pesan Warning
 void createLogWarning(const char *log, const char *path){
     FILE *fp;
     fp = fopen("/home/noradier/fs.log", "a");
@@ -33,6 +34,7 @@ void createLogWarning(const char *log, const char *path){
     fclose(fp);
 }
 
+// Membuat log dengan pesan Info
 void createLogInfo1(const char *log, const char *path){
     FILE *fp;
     fp = fopen("/home/noradier/fs.log", "a");
@@ -49,6 +51,7 @@ void createLogInfo1(const char *log, const char *path){
     fclose(fp);
 }
 
+// Membuat log dengan pesan Info tapi menerima dua path, source dan destination
 void createLogInfo2(const char *log, const char *source, const char *destination){
     FILE *fp;
     fp = fopen("/home/noradier/fs.log", "a");
