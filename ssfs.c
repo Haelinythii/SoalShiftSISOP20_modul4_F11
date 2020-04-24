@@ -70,6 +70,133 @@ void createLogInfo2(const char *log, const char *source, const char *destination
     fclose(fp);
 }
 
+void encrypt2(char *filePath){
+    char srcPath[1000];
+    char destPath[1000];
+    sprintf(srcPath, "%s", filePath);
+    sprintf(destPath, "%s.", filePath);
+    pid_t child = fork();
+    int status;
+    if(child == 0){
+        pid_t ex = fork();
+        if(ex == 0){
+            char *argv[]={"split", "-a", "3", "-d","-b", "1024", srcPath, destPath, NULL};
+            execv("/usr/bin/split", argv);
+        } else {
+            while((wait(&status)) > 0);
+            char *argv[]={"rm", srcPath, NULL};
+            execv("/bin/rm", argv);
+        }
+    }
+    return;
+}
+
+void initEncrypt2(char *wPath){
+    chdir(wPath);
+    DIR *d;
+    struct dirent *dir;
+    struct stat myFile;
+    d = opendir(".");
+    if(d){
+        while((dir = readdir(d)) != NULL){
+            if (stat(dir->d_name, &myFile) < 0);
+            else if (!S_ISDIR(myFile.st_mode))
+            {
+                char filePath[1000];
+                sprintf(filePath, "%s/%s", wPath, dir->d_name);
+                encrypt2(filePath);
+            } else{
+                if(strcmp(dir->d_name, "..") == 0 || strcmp(dir->d_name, ".") == 0)
+                    continue;
+                char newPath[1000];
+                sprintf(newPath, "%s/%s", wPath, dir->d_name);
+                initEncrypt2(newPath);
+            }
+        }
+    }
+    return;
+}
+
+void appendContent(char source[], char dest[]){
+    int ch;
+    FILE *fp1, *fp2;
+
+    fp1 = fopen(source, "r");
+    fp2 = fopen(dest, "a");
+    
+    if (!fp1) {
+            printf("Unable to open source file to read!!\n");
+            fclose(fp2);
+            return ;
+    }
+
+    if (!fp2) {
+            printf("Unable to open target file to write\n");
+            return ;
+    }
+
+    while ((ch = fgetc(fp1)) != EOF) {
+            fputc(ch, fp2);
+    }
+
+    fclose(fp1);
+    fclose(fp2);
+
+    remove(source);
+    return ;
+}
+
+void decrypt2(char *filePath){
+    int i = 0;
+    FILE *fp = fopen(filePath, "w");
+    fclose(fp);
+    while(1){
+        char curFile[1000];
+        sprintf(curFile, "%s.%03d", filePath, i);
+        struct stat buffer;
+        if(stat(curFile, &buffer) != 0)
+            break;
+        
+        appendContent(curFile, filePath);
+        i++;
+    }
+}
+
+void initDecrypt2(char *wPath){
+    chdir(wPath);
+    DIR *d;
+    struct dirent *dir;
+    struct stat myFile;
+    d = opendir(".");
+    if(d){
+        while((dir = readdir(d)) != NULL){
+            if (stat(dir->d_name, &myFile) < 0);
+            else if (!S_ISDIR(myFile.st_mode))
+            {
+                char filePath[1000];
+                sprintf(filePath, "%s/%s", wPath, dir->d_name);
+                char *pch = strrchr(filePath, '.');
+                char oldFilePath[1000];
+                int i;
+                for(i=0; i<pch-filePath; i++){
+                    if(i == 0)
+                        sprintf(oldFilePath, "%c", filePath[i]);
+                    else
+                        sprintf(oldFilePath, "%s%c", oldFilePath, filePath[i]);
+                }
+                decrypt2(oldFilePath);
+            } else{
+                if(strcmp(dir->d_name, "..") == 0 || strcmp(dir->d_name, ".") == 0)
+                    continue;
+                char newPath[1000];
+                sprintf(newPath, "%s/%s", wPath, dir->d_name);
+                initDecrypt2(newPath);
+            }
+        }
+    }
+    return;
+}
+
 static int xmp_getattr(const char *path, struct stat *stbuf){
     int res;
     char fpath[1000];
@@ -267,6 +394,16 @@ static int xmp_rename(const char *from, const char *to){
         return -errno;
 
     createLogInfo2("RENAME", from, to);
+
+    if(strstr(from, "encv2_") != NULL && strstr(to, "encv2_") == NULL){
+        initDecrypt2(fpathTo);
+        createLogInfo2("DECRYPT2", from, to);
+    }
+
+    ifstrstr(from, "encv2_") == NULL && (strstr(to, "encv2_") != NULL){
+        initEncrypt2(fpathTo);
+        createLogInfo2("ENCRYPT2", from, to);
+    }
     return 0;
 }
 
