@@ -22,7 +22,183 @@ maka setiap command yang dilakukan akan dicatat kedalam sebuah file log.
 
 ### 1. Enkripsi versi 1:
 
-**Belum selesai**
+```c
+void caesar_chiper_encrypt (char text[1000], char newChar[1000])
+{
+	char key[100] = "9(ku@AW1[Lmvgax6q`5Y2Ry?+sF!^HKQiBXCUSe&0M.b%rI'7d)o4~VfZ*{#:}ETt$3J-zpc]lnh8,GwP_ND|jO";
+    
+    char sentence[1000] = "";
+    strcpy(sentence, text);
+
+    int in;
+    for (in = 0 ; strlen(sentence) > in ; in++)
+	{
+		if(sentence[in] == '/')
+		{
+            newChar[in] = '/';
+			continue;
+		}
+		char dif[2];
+		dif[0] = sentence[in];
+        newChar[in] = key[(strcspn(key,dif) + 10) % 87];
+//		for (i = 0 ; strlen(key) > i; i++)
+//		{
+//			if(key[i] == sentence[in])
+//			{
+//				printf("%c", key[(i+10) % 87]);
+//				break;
+//			}
+//		}
+	}
+
+}
+```
+Untuk melakukan enkrip dengan caesar chiper, pertama kita harus mencari dahulu karakter per karakter yang ingin di enkrip di key. Cara mencarinya bisa dengan menggunakan fungsi `strcspn` dari `string.h` yang me-return index dimana huruf tersebut ditemukan pertama kali di key. Index tersebut ditambahkan dengan pergeseran key sebesar yang kita mau, lalu di mod dengan total panjangnya key untuk menghindari overflow. Dari itu kita dapatkan `(strcspn(key,dif) + 10) % 87`. Opsi lain adalah dengan menggunakan linear searching (line yang dicomment), dengan mencari satu per satu karakter dari key untuk di match dengan yang ingin di enkripkan untuk mendapatkan indexnya. Kita lakukan looping ini selama masih ada karakter yang ingin di enkrip.
+
+```c
+void caesar_chiper_decrypt (char text[1000], char newChar[1000])
+{
+	char key[100] = "9(ku@AW1[Lmvgax6q`5Y2Ry?+sF!^HKQiBXCUSe&0M.b%rI'7d)o4~VfZ*{#:}ETt$3J-zpc]lnh8,GwP_ND|jO";
+    
+    char sentence[1000] = "";
+    strcpy(sentence, text);
+
+    for (int in = 0 ; strlen(sentence) > in ; in++)
+	{
+		if(sentence[in] == '/')
+		{
+            newChar[in] = '/';
+			continue;
+		}
+		for (int i = 0 ; strlen(key) > i; i++)
+		{
+			if(key[i] == sentence[in])
+			{
+				int indTemp = i;
+				if(indTemp < 10) indTemp += 87;
+                newChar[in] = key[indTemp-10];
+				break;
+			}
+		}
+	}
+}
+```
+Untuk dekripnya hampir sama dengan enkrip. Bedanya disini adalah jika dienkrip kita menambahkan 10, didekrip kita mengurangi 10 sehingga menjadi karakter semula lagi. `indTemp += 87` digunakan untuk agar tidak keluar dari array key, dan kondisinya tergantung seberapa besar perpindahan keynya.
+
+Sekarang kita bisa menuliskan tambahan kode untuk dekripsi path pada fungsi `xmp_getattr`, `xmp_readdir`, dan `xmp_read` :
+
+```c
+    char* token = strtok(path, "/");
+    while(token != NULL)
+    {
+        if(encryptNeeded)
+        {
+            strcat(pathEnc, "/");
+            strcat(pathEnc, token);
+        }
+        else if (!encryptNeeded)
+        {
+            strcat(pathNow, "/");
+            strcat(pathNow, token);
+        }
+        if(strncmp(token, "encv1_", 6) == 0) //perlu encrypt
+        {
+            encryptNeeded = true;
+        }
+        token = strtok(NULL, "/");
+    }
+```
+pada perulangan ini akan mendeteksi apakah perlu diadakan enkripsi tipe 1. Caranya dengan mengecek pathnya. Kita akan memasukkan path kedalam `pathNow` satu per satu. Untuk setiap directory, dicek apakah namanya berisi "encv1_" di awalnya. Jika iya maka perlu dienkrip. Setelah itu sisa dari path setelah "encv1_" itu akan dimasukkan ke string yang berbeda dengan path sebelumnya.
+
+```c
+if(encryptNeeded)
+    {
+        char  checkFile[1000] = "", checkEnc[1000]= "";
+        
+        char* titik = strrchr(pathEnc, '.');
+        if(titik != NULL)
+        {
+            strncpy(checkFile, pathEnc, titik-pathEnc);
+            caesar_chiper_decrypt(checkFile, checkEnc);
+        }
+        
+        
+        char checkDoc[1000] = "";
+        strcat(checkDoc, dirpath);
+        strcat(checkDoc, pathNow);
+        strcat(checkDoc, checkEnc);
+        if(titik != NULL) strcat(checkDoc, titik);
+
+        if(isRegFile(checkDoc))
+        {
+            sprintf(fpath, "%s%s%s%s",dirpath, pathNow, checkEnc, titik);
+        }
+        else
+        {
+            caesar_chiper_decrypt(pathEnc, enc);
+            sprintf(fpath, "%s%s%s",dirpath, pathNow, enc);
+        }
+    }
+    else
+    {
+        caesar_chiper_decrypt(pathEnc, enc);
+	    sprintf(fpath,"%s%s%s",dirpath, pathNow,enc);
+    }
+```
+Jika enkripsi diperlukan, maka kita akan memisahkan nama file dengan ekstensinya dengan `strrchr` yang fungsinya untuk mendeteksi karakter yang match yang paling akhir. Setelah itu kita akan mencheck apakah yang ingin di dekrip ini file atau directory. Jika file maka yang didekrip hanyalah namafile nya saja, ekstensinya tidak. Jika direktori, seluruhnya akan didekrip. fungsi mendekrip disini adalah mendapatkan nama path yang aslinya sehingga pada operasi selanjutnya dapat menggunakan path ini.
+
+Jika enkripsi tidak diperlukan maka kita tidak perlu mendekripsi nama file/direktori nya.
+
+Pada `xmp_readdir` harus ditambahkan kode lagi selain diatas, yaitu untuk melakukan enkripsi. Tambahan kodenya ada pada perulangan menbaca file-file dari folder yang dibuka.
+
+```c
+    while ((de = readdir(dp)) != NULL) {
+        if(strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0) continue;
+        struct stat st;
+        memset(&st, 0, sizeof(st));
+        st.st_ino = de->d_ino;
+        st.st_mode = de->d_type << 12;
+
+        if(encryptNeeded)
+        {
+            if(de->d_type == DT_DIR) //direktori
+            {
+                char enc[1000] = "";
+                caesar_chiper_encrypt(de->d_name, enc);
+		        res = (filler(buf, enc, &st, 0));
+            }
+            else if(de->d_type == DT_REG) //file reguler
+            {
+                char enc[1000] = "", fileLengkap[1000]="", fileName[1000] = "";
+
+                strcpy(fileLengkap, de->d_name);
+                char* titik = strrchr(fileLengkap, '.');
+
+                if(titik != NULL) 
+                    strncpy(fileName, fileLengkap, titik-fileLengkap);
+                else
+                    strcpy(fileName, fileLengkap);
+                
+
+                caesar_chiper_encrypt(fileName, enc);
+
+                if(titik != NULL) strcat(enc, titik);
+
+
+		        res = (filler(buf, enc, &st, 0));
+            }
+        }
+        else
+        {
+            res = (filler(buf, de->d_name, &st, 0));
+        }
+        if(res!=0) break;
+    }
+```
+
+Pertama, kita akan cek jika directory yang dibaca adalah "." dan "..". Direktori tersebut tidak perlu dienkripsi. Kita akan cek pula apakah enkripsi diperlukan atau tidak, dari pengecekan nama direktori diatas tadi. Jika perlu dienkrip, maka kita mengcek terlebih dahulu apakah dia file atau direktori.
+
+Sama seperti diatas, file tidak perlu mengenkripsi ekstensinya sedangkan folder akan menenkripsi semua. Pada file kita perlu memisahkan nama dengan ekstensinya, dan hanya nama yang dienkripsi. Jika sudah, maka akan dimasukkan ke fungsi `filler()`
 
 ### 2. Enkripsi versi 2:
 
