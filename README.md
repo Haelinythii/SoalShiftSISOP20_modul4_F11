@@ -360,10 +360,12 @@ void initDecrypt2(char *wPath){
 
 **Penjelasan :**
 
-Enkripsi
+####Enkripsi
+
 Enkripsi berjalan secara sekuensial. Semua file dalam folder yang di-enkripsi akan dipecah menjadi beberapa file menggunakan "split". Perintah split yang digunakan diatur dengan argumen yang membantu menghasilkan output soal: size sebesar 1024 bytes dan diberi tiga digit angka di akhir nama file kecil. Ketika fungsi mendeteksi folder, maka akan dilakukan proses enkripsi yang sama terhadap semua file dalam folder tersebut.
 
-Dekripsi
+####Dekripsi
+
 Dekripsi dieksekusi serupa dengan enkripsi: sekuensial dan berlaku untuk semua file dalam folder. Dekripsi menggunakan fungsi bantuan appendContent. Fungsi ini merupakan modifikasi fungsi umum untuk menyalin sebuah file. Modifikasi berupa pergantian akses "write" ke "append". Akses ini memungkinkan untuk menyalin isi file kecil ke dalam satu file yang merupakan file awal sebelum dipecah. Penyalinan file dimulai dari file dari digit 000 sampai digit ddd tidak ditemukan (artinya penyalinan berakhir). Dekripsi bersifat rekursif.
 
 ### 3. Sinkronisasi direktori otomatis:
