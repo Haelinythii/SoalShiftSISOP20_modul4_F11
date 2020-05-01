@@ -85,7 +85,7 @@ void caesar_chiper_decrypt (char text[1000], char newChar[1000])
 ```
 Untuk dekripnya hampir sama dengan enkrip. Bedanya disini adalah jika dienkrip kita menambahkan 10, didekrip kita mengurangi 10 sehingga menjadi karakter semula lagi. `indTemp += 87` digunakan untuk agar tidak keluar dari array key, dan kondisinya tergantung seberapa besar perpindahan keynya.
 
-Sekarang kita bisa menuliskan tambahan kode untuk dekripsi path pada fungsi `xmp_getattr`, `xmp_readdir`, dan `xmp_read` :
+Sekarang kita bisa menuliskan tambahan kode untuk dekripsi path pada fungsi `xmp_getattr`, `xmp_readdir`, dan `xmp_read` untuk membaca fpath :
 
 ```c
     char* token = strtok(path, "/");
