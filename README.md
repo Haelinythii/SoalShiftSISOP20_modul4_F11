@@ -200,6 +200,19 @@ Pertama, kita akan cek jika directory yang dibaca adalah "." dan "..". Direktori
 
 Sama seperti diatas, file tidak perlu mengenkripsi ekstensinya sedangkan folder akan menenkripsi semua. Pada file kita perlu memisahkan nama dengan ekstensinya, dan hanya nama yang dienkripsi. Jika sudah, maka akan dimasukkan ke fungsi `filler()`
 
+Screenshot compile dan run program FUSE:
+![compile](img/compile)
+![run](img/run)
+
+Screenshot folder FUSE pertama kali dibuka:
+![fusedoc](img/fusedoc)
+
+Jika dienkrip, isi direktory akan menjadi seperti ini:
+![encv1](img/enkrip1)
+
+Jika didekripsi dengan mengganti nama direktory, maka akan menjadi normal:
+![decv1](img/dekrip1)
+
 ### 2. Enkripsi versi 2:
 
 **Soal :**
@@ -367,6 +380,12 @@ Enkripsi berjalan secara sekuensial. Semua file dalam folder yang di-enkripsi ak
 ####Dekripsi
 
 Dekripsi dieksekusi serupa dengan enkripsi: sekuensial dan berlaku untuk semua file dalam folder. Dekripsi menggunakan fungsi bantuan appendContent. Fungsi ini merupakan modifikasi fungsi umum untuk menyalin sebuah file. Modifikasi berupa pergantian akses "write" ke "append". Akses ini memungkinkan untuk menyalin isi file kecil ke dalam satu file yang merupakan file awal sebelum dipecah. Penyalinan file dimulai dari file dari digit 000 sampai digit ddd tidak ditemukan (artinya penyalinan berakhir). Dekripsi bersifat rekursif.
+
+Pada Folder encv2_ isinya akan seperti ini:
+![encv2](img/enkrip2)
+
+Jika didekripsi dengan mengganti nama direktory, maka akan menjadi normal:
+![dencv2](img/dekrip2)
 
 ### 3. Sinkronisasi direktori otomatis:
 
