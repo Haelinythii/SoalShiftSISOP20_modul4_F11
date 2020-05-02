@@ -201,17 +201,17 @@ Pertama, kita akan cek jika directory yang dibaca adalah "." dan "..". Direktori
 Sama seperti diatas, file tidak perlu mengenkripsi ekstensinya sedangkan folder akan menenkripsi semua. Pada file kita perlu memisahkan nama dengan ekstensinya, dan hanya nama yang dienkripsi. Jika sudah, maka akan dimasukkan ke fungsi `filler()`
 
 Screenshot compile dan run program FUSE:
-![compile](img/compile)
-![run](img/run)
+![compile](img/compile.png)
+![run](img/run.png)
 
 Screenshot folder FUSE pertama kali dibuka:
-![fusedoc](img/fusedoc)
+![fusedoc](img/fusedoc.png)
 
 Jika dienkrip, isi direktory akan menjadi seperti ini:
-![encv1](img/enkrip1)
+![encv1](img/enkrip1.png)
 
 Jika didekripsi dengan mengganti nama direktory, maka akan menjadi normal:
-![decv1](img/dekrip1)
+![decv1](img/dekrip1.png)
 
 ### 2. Enkripsi versi 2:
 
@@ -382,10 +382,10 @@ Enkripsi berjalan secara sekuensial. Semua file dalam folder yang di-enkripsi ak
 Dekripsi dieksekusi serupa dengan enkripsi: sekuensial dan berlaku untuk semua file dalam folder. Dekripsi menggunakan fungsi bantuan appendContent. Fungsi ini merupakan modifikasi fungsi umum untuk menyalin sebuah file. Modifikasi berupa pergantian akses "write" ke "append". Akses ini memungkinkan untuk menyalin isi file kecil ke dalam satu file yang merupakan file awal sebelum dipecah. Penyalinan file dimulai dari file dari digit 000 sampai digit ddd tidak ditemukan (artinya penyalinan berakhir). Dekripsi bersifat rekursif.
 
 Pada Folder encv2_ isinya akan seperti ini:
-![encv2](img/enkrip2)
+![encv2](img/enkrip2.png)
 
 Jika didekripsi dengan mengganti nama direktory, maka akan menjadi normal:
-![dencv2](img/dekrip2)
+![dencv2](img/dekrip2.png)
 
 ### 3. Sinkronisasi direktori otomatis:
 
@@ -465,3 +465,9 @@ void createLogInfo2(const char *log, const char *source, const char *destination
 **Penjelasan :**
 
 Setiap kali perintah rmdir dan unlink dipanggil, akan dimasukkan catatan ke dalam file fs.log ditandai dengan level WARNING. Selain itu, pemanggilan fungsi lain akan ditandai dengan level INFO. Isi pesan setelah tingkat level diikuti dengan timestamp yymmdd-HH:MM:SS. Timestamp kemudian diikuti dengan perintah yang dipanggil dan deskripsi perintah. Deskripsi perintah yang diisi berupa path dimana perintah di jalankan.
+
+Pada home/user akan tercreate file "fs.log" seperti ini:
+![pathlog](img/pathlog.png)
+
+Screenshot Isinya:
+![isilog](img/isilog.png)
